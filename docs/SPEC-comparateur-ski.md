@@ -91,8 +91,22 @@ API FastAPI → Frontend web
 2. **Phase 2 — API** : endpoints, logique de scoring, tests automatisés
 3. **Phase 3 — Frontend** : carte interactive, fiches stations, comparateur
 
-## 8. Points ouverts à trancher avec Claude Code
+## 8. Décisions prises
+
+### Périmètre géographique pilote
+
+Alpes du Nord, 20 stations couvrant plusieurs sous-massifs (Mont-Blanc, Faucigny,
+Chablais, Aravis, Vanoise, Haute-Tarentaise, Tarentaise, Maurienne, Belledonne) —
+mix de grandes stations internationales, stations familiales et stations de
+proximité pour tester la robustesse du pipeline sur des profils de données variés.
+
+La liste est pilotée par `dbt_project/seeds/perimetre_stations.csv` (colonnes :
+`station_id`, `nom_station`, `massif`, `sous_massif`, `actif`) et non codée en dur,
+pour permettre d'ajouter des stations plus tard sans modifier le code du pipeline
+ni les modèles dbt. `stg_stations_referentiel` filtre sur ce seed via jointure sur
+`station_id` où `actif = true`.
+
+## 9. Points ouverts à trancher avec Claude Code
 
 - Fréquence de rafraîchissement du pipeline (cron, Airflow léger, ou script manuel au départ ?)
 - Granularité du score de qualité neige (formule à définir : pondération enneigement/météo/fraîcheur)
-- Choix définitif du périmètre géographique pilote (un massif ou plusieurs ?)

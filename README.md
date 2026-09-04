@@ -6,7 +6,7 @@ de ski selon l'enneigement, la météo et les préférences utilisateur.
 
 ## Documentation
 
-- `docs/SPEC.md` — spécification complète (architecture, schéma dbt, API, roadmap)
+- `docs/SPEC-comparateur-ski.md` — spécification complète (architecture, schéma dbt, API, roadmap)
 - `CLAUDE.md` — contexte projet pour Claude Code
 
 ## Structure du projet

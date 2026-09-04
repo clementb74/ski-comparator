@@ -11,7 +11,7 @@ Objectif : démontrer la maîtrise complète de la chaîne data engineering +
 développement fullstack (ingestion → transformation → API → interface web).
 
 La spécification complète (architecture, schéma dbt détaillé, endpoints API,
-roadmap) est dans `docs/SPEC.md` — s'y référer avant toute décision structurante.
+roadmap) est dans `docs/SPEC-comparateur-ski.md` — s'y référer avant toute décision structurante.
 
 ## Stack technique
 
@@ -28,7 +28,7 @@ roadmap) est dans `docs/SPEC.md` — s'y référer avant toute décision structu
 
 Bronze (MongoDB, brut) → Silver (dbt staging, Snowflake) → Gold (dbt marts,
 Snowflake) → API → Frontend. Détail des modèles dbt (staging/intermediate/marts)
-dans `docs/SPEC.md` section 5.
+dans `docs/SPEC-comparateur-ski.md` section 5.
 
 ## Conventions de code
 
@@ -39,7 +39,7 @@ dans `docs/SPEC.md` section 5.
 
 ## Où en est le projet
 
-Phase 1 (MVP data) en cours de démarrage — voir `docs/SPEC.md` section 7 pour la
+Phase 1 (MVP data) en cours de démarrage — voir `docs/SPEC-comparateur-ski.md` section 7 pour la
 roadmap complète. Mettre à jour cette section au fil de l'avancement.
 
 ## Décisions prises
@@ -57,4 +57,4 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
 
 Ce fichier donne le contexte à Claude Code. Les décisions de design/architecture
 sont réfléchies en amont avec Claude (claude.ai) puis reportées ici et dans
-`docs/SPEC.md` pour rester synchronisées.
+`docs/SPEC-comparateur-ski.md` pour rester synchronisées.

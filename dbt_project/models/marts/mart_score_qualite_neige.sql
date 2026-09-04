@@ -1,5 +1,5 @@
 -- Score de qualité neige calculé (enneigement, fraîcheur, météo à venir).
--- TODO: définir la formule de pondération (voir docs/SPEC.md section 8).
+-- TODO: définir la formule de pondération (voir docs/SPEC-comparateur-ski.md section 9).
 
 select
     station_id,
