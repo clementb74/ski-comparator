@@ -42,11 +42,16 @@ dans `docs/SPEC.md` section 5.
 Phase 1 (MVP data) en cours de démarrage — voir `docs/SPEC.md` section 7 pour la
 roadmap complète. Mettre à jour cette section au fil de l'avancement.
 
-## Points ouverts (à trancher ou déjà tranchés ici)
+## Décisions prises
+
+- **Périmètre géographique pilote** : Alpes du Nord, 20 stations listées dans
+  `dbt_project/seeds/perimetre_stations.csv` (extensible sans toucher au code —
+  ajouter une ligne au CSV suffit). `stg_stations_referentiel` filtre sur ce seed.
+
+## Points ouverts
 
 - Fréquence de rafraîchissement du pipeline : à définir
 - Formule exacte du score de qualité neige : à définir
-- Périmètre géographique pilote : à définir (proposition initiale : Alpes du Nord)
 
 ## Note
 

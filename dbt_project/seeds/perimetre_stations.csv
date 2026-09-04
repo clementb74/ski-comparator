@@ -1,0 +1,21 @@
+station_id,nom_station,massif,sous_massif,actif
+chamonix-mont-blanc,Chamonix-Mont-Blanc,Alpes du Nord,Mont-Blanc,true
+les-houches,Les Houches,Alpes du Nord,Mont-Blanc,true
+megeve,Megève,Alpes du Nord,Mont-Blanc,true
+flaine,Flaine,Alpes du Nord,Faucigny,true
+morzine-avoriaz,Morzine-Avoriaz,Alpes du Nord,Chablais,true
+les-gets,Les Gets,Alpes du Nord,Chablais,true
+la-clusaz,La Clusaz,Alpes du Nord,Aravis,true
+le-grand-bornand,Le Grand-Bornand,Alpes du Nord,Aravis,true
+val-thorens,Val Thorens,Alpes du Nord,Vanoise,true
+courchevel,Courchevel,Alpes du Nord,Vanoise,true
+meribel,Méribel,Alpes du Nord,Vanoise,true
+les-menuires,Les Menuires,Alpes du Nord,Vanoise,true
+tignes,Tignes,Alpes du Nord,Haute-Tarentaise,true
+val-disere,Val d'Isère,Alpes du Nord,Haute-Tarentaise,true
+la-plagne,La Plagne,Alpes du Nord,Tarentaise,true
+les-arcs,Les Arcs,Alpes du Nord,Tarentaise,true
+valmorel,Valmorel,Alpes du Nord,Tarentaise,true
+le-corbier,Le Corbier,Alpes du Nord,Maurienne,true
+les-sept-laux,Les Sept Laux,Alpes du Nord,Belledonne,true
+chamrousse,Chamrousse,Alpes du Nord,Belledonne,true
