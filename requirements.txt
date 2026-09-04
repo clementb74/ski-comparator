@@ -1,0 +1,10 @@
+pyspark==3.5.1
+pymongo==4.8.0
+fastapi==0.112.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+pydantic-settings==2.4.0
+requests==2.32.3
+python-dotenv==1.0.1
+pytest==8.3.2
+snowflake-connector-python==3.12.2

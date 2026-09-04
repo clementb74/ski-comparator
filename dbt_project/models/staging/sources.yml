@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Données brutes ingérées en couche bronze (MongoDB -> Snowflake)"
+    tables:
+      - name: raw_meteo_releves
+        description: "Relevés météo bruts par zone de massif"
+      - name: raw_stations_referentiel
+        description: "Référentiel brut des stations (data.gouv.fr)"
+      - name: raw_bulletins_neige
+        description: "Bulletins neige bruts scrapés par station"
