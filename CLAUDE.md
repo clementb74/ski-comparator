@@ -75,14 +75,46 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
 - **Pipeline `ingestion/pipeline.py` : double écriture Mongo (bronze) +
   Snowflake RAW (silver-ready) dans le même run**, pas de chantier séparé
   pour le pont Bronze→Snowflake pour l'instant. Le chargement Snowflake est
-  un delete+insert par `station_id` (idempotent), pas un merge incrémental.
+  un delete+insert par une clé (`station_id` ou `id_massif_bra` selon la
+  source, paramétrable via `key_field`/`key_column`), pas un merge
+  incrémental.
+- **Source météo : BRA (Bulletin de Risque d'Avalanche) Météo-France, pas
+  une API de prévisions générales.** L'API accessible avec les identifiants
+  du projet (`portail-api.meteofrance.fr` + `public-api.meteofrance.fr`)
+  couvre le risque avalanche et l'enneigement par massif, pas
+  température/vent/pluie. Auth : header `Authorization` fourni tel quel par
+  le portail dans `.env` (`METEO_FRANCE_AUTHORIZATION`, format `Basic
+  xxx...`) — **ce n'est pas** un `client_id`/`client_secret` à reconstruire
+  (l'identifiant de connexion au portail ne fonctionne pas comme client_id,
+  vérifié à deux reprises). Un appel par massif BRA (pas par station, 7
+  massifs pour 20 stations), token réutilisé pour tout le run
+  (`ingestion/sources/meteo_france.py`).
+- **BRA est saisonnier (novembre à juin)** : hors saison (ex. septembre),
+  l'API répond un `<message>` "saison terminée" au lieu du bulletin. Géré
+  explicitement (`hors_saison=True`), pas une erreur. **Le schéma XML du
+  bulletin en saison n'a pas pu être vérifié sur des données réelles** — le
+  parsing (`DATEBULLETIN`, `CARTOUCHERISQUE/RISQUE`, ...) est basé sur une
+  source tierce technique, pas la doc officielle Météo-France (PDF
+  illisible en l'état). Le XML brut est conservé en bronze pour ré-analyse
+  si besoin. **À revalider dès la reprise de saison en novembre 2026.**
+- **`sous_massif` du seed pilote (Faucigny, Tarentaise) ne correspond pas
+  aux 23 massifs BRA officiels.** Mapping station → massif BRA dans
+  `dbt_project/seeds/stations_massif_bra.csv`, confirmé station par station
+  avec l'utilisateur — sauf **flaine → Aravis, qui reste un TODO
+  incertain** (pas de massif BRA officiel pour "Faucigny", choix par
+  proximité géographique non vérifié).
+- **Fix d'un bug pré-existant** : `int_stations_meteo_joined.sql` joignait
+  sur `stations.massif` (toujours "Alpes du Nord", donc inutilisable comme
+  clé). Remplacé par une jointure via `stations_massif_bra` sur le massif
+  BRA fin.
 
 ## Points ouverts
 
 - Fréquence de rafraîchissement du pipeline : à définir
 - Formule exacte du score de qualité neige : à définir
-- Sources météo et bulletins neige (2/3 et 3/3 du roadmap ingestion) : pas
-  encore implémentées
+- Source bulletins neige (3/3 du roadmap ingestion) : pas encore implémentée
+- Revalider le parsing XML du BRA avec de vraies données dès novembre 2026
+- Vérifier le massif BRA de Flaine (actuellement Aravis, TODO non confirmé)
 
 ## Note
 

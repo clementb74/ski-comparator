@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class IngestionSettings(BaseSettings):
     mongodb_uri: str = ""
-    meteo_france_api_key: str = ""
+    meteo_france_authorization: str = ""
 
     snowflake_account: str = ""
     snowflake_user: str = ""
