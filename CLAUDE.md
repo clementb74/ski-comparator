@@ -39,8 +39,11 @@ dans `docs/SPEC-comparateur-ski.md` section 5.
 
 ## Où en est le projet
 
-Phase 1 (MVP data) en cours de démarrage — voir `docs/SPEC-comparateur-ski.md` section 7 pour la
-roadmap complète. Mettre à jour cette section au fil de l'avancement.
+Phase 1 (MVP data) terminée : ingestion (3 sources) → dbt → marts → score.
+Phase 2 (API) démarrée : 4 endpoints stations/recommandations fonctionnels.
+Reste : Phase 3 (frontend). Voir `docs/SPEC-comparateur-ski.md` section 7
+pour la roadmap complète. Mettre à jour cette section au fil de
+l'avancement.
 
 ## Décisions prises
 
@@ -150,6 +153,31 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
   (le chargement Snowflake actuel est un delete+insert, pas un append) ; on
   n'a qu'un seul snapshot pour l'instant, donc rien à agréger. À revoir
   quand le pipeline tournera en continu.
+- **Phase 2 démarrée : API FastAPI.** Endpoints sous préfixe `/api/v1`
+  (convention "versionnés" déjà écrite plus haut) : `GET /stations`
+  (filtres `massif`/`altitude_min`/`altitude_max`), `GET /stations/{id}`
+  (404 explicite si absent), `GET /stations/comparer?ids=...`,
+  `GET /recommandations` (tri par `score_qualite_neige`). Connexion
+  Snowflake par requête HTTP (`api/core/snowflake_client.py`, même pattern
+  que le sink d'ingestion) — pas de pool, cohérent avec l'échelle
+  portfolio.
+- **`/recommandations` simplifié : tri par score + filtre massif
+  uniquement.** Les critères niveau/budget de la spec ne sont pas
+  implémentés (aucune source n'ingère difficulté de pistes ou prix) —
+  retirés de `StationFiltres` aussi plutôt que d'accepter des paramètres
+  sans effet.
+- **Fix d'un bug pré-existant** : `Station` (Pydantic) référençait
+  `altitude_min`/`altitude_max` qui n'ont jamais existé dans les données
+  (`dim_stations` n'a qu'`altitude_m`, point unique OSM) — corrigé.
+  `/stations/comparer` était déclarée après `/stations/{station_id}` dans
+  le routeur, donc FastAPI aurait matché "comparer" comme un `station_id` —
+  ordre corrigé (test de non-régression dans `tests/test_api.py`).
+- **Fix d'un bug pré-existant** : `APISettings`/`IngestionSettings`
+  n'avaient pas `extra="ignore"` — dès que `.env` contient une variable que
+  l'une des deux classes ne déclare pas (ex. `MONGODB_URI` pour
+  `APISettings`), pydantic-settings lève une erreur de validation au
+  chargement. Corrigé sur les deux, syntaxe modernisée
+  (`model_config = SettingsConfigDict(...)` au lieu de `class Config`).
 
 ## Points ouverts
 

@@ -1,8 +1,10 @@
 """Configuration centralisée pour les scripts d'ingestion (variables d'env)."""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class IngestionSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     mongodb_uri: str = ""
     meteo_france_authorization: str = ""
 
@@ -12,9 +14,6 @@ class IngestionSettings(BaseSettings):
     snowflake_warehouse: str = ""
     snowflake_database: str = ""
     snowflake_schema: str = ""
-
-    class Config:
-        env_file = ".env"
 
 
 settings = IngestionSettings()
