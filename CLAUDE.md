@@ -127,15 +127,41 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
   (référentiel, météo/avalanche, bulletins neige) — pipeline bout en bout
   validé : `ingestion/pipeline.py` → MongoDB (bronze) → Snowflake RAW →
   `stg_*`/`int_*`/marts dbt.
+- **Fix d'un bug pré-existant** : `fct_enneigement_quotidien` ne contenait
+  que la météo (`int_stations_meteo_joined`), jamais les bulletins neige —
+  malgré son nom. Joint maintenant aussi `int_enneigement_historique` sur
+  `station_id`.
+- **Formule du score de qualité neige** (`mart_score_qualite_neige.sql`) :
+  enneigement 50% (`base_snow_depth`, plein score à 100cm) + fraîcheur de la
+  dernière chute 25% (plein score le jour même, dégressif à 0 sur 10 jours)
+  + ouverture du domaine 25% (`open_trails`, plein score à 40 pistes
+  ouvertes). Seuils choisis arbitrairement (pas de saison active pour les
+  calibrer sur données réelles) — **à recalibrer en novembre 2026**. Le
+  risque avalanche BRA (`niveau_risque_avalanche`) est exposé à part, pas
+  intégré au score (ce n'est pas un critère de qualité, c'est un risque).
+- **Score `NULL` hors-saison** (pas de `base_snow_depth`) plutôt qu'une
+  valeur par défaut — décision explicite pour ne pas confondre "mauvaises
+  conditions" et "pas de donnée". Le test dbt sur `score_qualite_neige` est
+  `dbt_utils.accepted_range(0, 100)`, pas `not_null` (les `NULL` passent ce
+  test sans échouer).
+- **`int_enneigement_historique` reste un passthrough** (`select * from
+  stg_bulletins_neige`), malgré son nom — une vraie agrégation
+  saison/tendances nécessiterait plusieurs runs du pipeline dans le temps
+  (le chargement Snowflake actuel est un delete+insert, pas un append) ; on
+  n'a qu'un seul snapshot pour l'instant, donc rien à agréger. À revoir
+  quand le pipeline tournera en continu.
 
 ## Points ouverts
 
 - Fréquence de rafraîchissement du pipeline : à définir
-- Formule exacte du score de qualité neige : à définir
+- Recalibrer les seuils du score de qualité neige avec de vraies données en
+  novembre 2026 (actuellement des valeurs arbitraires raisonnables)
 - Revalider le parsing XML du BRA avec de vraies données dès novembre 2026
 - Vérifier le massif BRA de Flaine (actuellement Aravis, TODO non confirmé)
 - `altitude_min`/`altitude_max` (fourchette du domaine skiable) : aucune des
   3 sources ne les fournit, à résoudre par une source dédiée si besoin
+- Passer `int_enneigement_historique` d'un passthrough à une vraie
+  agrégation historique une fois plusieurs runs du pipeline accumulés
 
 ## Note
 

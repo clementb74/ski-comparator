@@ -11,9 +11,14 @@ models:
 
   - name: fct_enneigement_quotidien
     description: "Faits enneigement/météo quotidiens par station"
+    columns:
+      - name: station_id
+        tests:
+          - not_null
+          - unique
 
   - name: mart_score_qualite_neige
-    description: "Score de qualité neige par station"
+    description: "Score de qualité neige par station (NULL hors-saison, pas de donnée d'enneigement)"
     columns:
       - name: station_id
         tests:
@@ -21,4 +26,7 @@ models:
           - unique
       - name: score_qualite_neige
         tests:
-          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
