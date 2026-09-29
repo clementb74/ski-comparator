@@ -39,10 +39,12 @@ dans `docs/SPEC-comparateur-ski.md` section 5.
 
 ## Où en est le projet
 
-Phase 1 (MVP data) terminée : ingestion (3 sources) → dbt → marts → score.
-Phase 2 (API) démarrée : 4 endpoints stations/recommandations fonctionnels.
-Reste : Phase 3 (frontend). Voir `docs/SPEC-comparateur-ski.md` section 7
-pour la roadmap complète. Mettre à jour cette section au fil de
+Les 3 phases du roadmap sont implémentées : Phase 1 (MVP data — ingestion 3
+sources → dbt → marts → score), Phase 2 (API FastAPI, 4 endpoints), Phase 3
+(frontend carte/fiches/comparateur). Reste surtout des points de
+calibration/finition (voir Points ouverts) et le déploiement, pas encore
+abordé. Voir `docs/SPEC-comparateur-ski.md` section 7 pour la roadmap
+complète. Mettre à jour cette section au fil de
 l'avancement.
 
 ## Décisions prises
@@ -178,6 +180,26 @@ l'avancement.
   `APISettings`), pydantic-settings lève une erreur de validation au
   chargement. Corrigé sur les deux, syntaxe modernisée
   (`model_config = SettingsConfigDict(...)` au lieu de `class Config`).
+- **Phase 3 (frontend) implémentée** : `frontend/` en HTML/JS vanilla + ES
+  modules natifs (pas de bundler, cohérent avec le squelette existant),
+  Leaflet via CDN (`unpkg.com/leaflet@1.9.4`), fond de carte OpenStreetMap
+  standard. Carte interactive (marqueurs colorés par `score_qualite_neige`,
+  gris si `null`), fiches stations = popups Leaflet (pas de page dédiée),
+  comparateur (état en mémoire, panneau latéral, table via
+  `GET /stations/comparer`). Vérifié dans un vrai navigateur (Playwright,
+  installé temporairement pour la vérification) : carte, popups, ajout et
+  retrait du comparateur fonctionnent sans erreur console.
+- **Ports de dev fixés à 5500 (frontend) et 8811 (API), pas les valeurs par
+  défaut (3000 et 8000).** Les deux sont déjà occupés en permanence sur
+  cette machine par d'autres projets de l'utilisateur (confirmé via
+  `netstat` : un autre service écoute sur `0.0.0.0:8000`/`[::1]:8000`, un
+  autre sur `:3000` qui redirige vers `/login`). Symptôme si on l'oublie :
+  ça a l'air de marcher en `curl` (résout en IPv4, atteint le bon
+  processus) mais échoue silencieusement dans un vrai navigateur (résout
+  `localhost` différemment, atteint l'autre service, 404). `package.json`
+  (`start`) et `frontend/src/config.js` (`API_BASE_URL`) sont la source de
+  vérité pour ces ports ; CORS dans `api/main.py` doit rester aligné avec
+  le port frontend.
 
 ## Points ouverts
 

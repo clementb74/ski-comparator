@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8" />
     <title>Comparateur de stations de ski</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
     <h1>Comparateur intelligent de stations de ski</h1>
-    <div id="map"></div>
-    <script src="src/main.js"></script>
+    <div class="mise-en-page">
+        <div id="map"></div>
+        <aside>
+            <h2>Comparateur</h2>
+            <div id="comparateur"></div>
+        </aside>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>

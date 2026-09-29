@@ -4,7 +4,51 @@ body {
     padding: 1rem;
 }
 
+.mise-en-page {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
 #map {
     height: 600px;
+    flex: 1 1 auto;
+    min-width: 0; /* laisse la carte se réduire pour ne pas pousser le panneau hors écran */
+}
+
+aside {
+    flex: 0 0 340px;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.tableau-comparateur {
+    min-width: 480px;
+}
+
+.popup-station h3 {
+    margin: 0 0 0.5rem;
+}
+
+.popup-station p {
+    margin: 0.2rem 0;
+    font-size: 0.9rem;
+}
+
+.popup-station button {
+    margin-top: 0.5rem;
+}
+
+.tableau-comparateur {
     width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.tableau-comparateur th,
+.tableau-comparateur td {
+    border: 1px solid #d1d5db;
+    padding: 0.3rem 0.5rem;
+    text-align: left;
 }
