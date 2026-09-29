@@ -57,9 +57,10 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
   de faire échouer le batch (`ingestion/sources/stations_referentiel.py`).
 - **Une seule altitude (`altitude_m`), pas altitude_min/max.** OSM ne donne
   fiablement que l'altitude d'un point (village/centre station), pas la
-  fourchette du domaine skiable. `altitude_min`/`altitude_max` viendront de
-  la source bulletins neige (qui publie souvent cette fourchette), pas encore
-  implémentée.
+  fourchette du domaine skiable. L'espoir initial était que la source
+  bulletins neige fournirait cette fourchette — **vérifié que non** (le
+  JSON-LD skiinfo.fr n'a aucun champ altitude, voir plus bas) : point
+  toujours ouvert, à résoudre par une source dédiée si besoin plus tard.
 - **MongoDB local via Docker pour le dev** (`docker run -d --name
   ski-comparator-mongo -p 27017:27017 mongo:7`), `MONGODB_URI` dans `.env`.
   Bascule vers Atlas/EC2 prévue pour la prod.
@@ -107,14 +108,34 @@ roadmap complète. Mettre à jour cette section au fil de l'avancement.
   sur `stations.massif` (toujours "Alpes du Nord", donc inutilisable comme
   clé). Remplacé par une jointure via `stations_massif_bra` sur le massif
   BRA fin.
+- **Source bulletins neige : skiinfo.fr (JSON-LD `schema.org/SkiResort`),
+  pas de scraping HTML fragile.** Chaque page
+  `skiinfo.fr/alpes-du-nord/{slug}/bulletin-neige` contient un bloc JSON
+  structuré (`additionalProperty`) avec hauteur de neige (base + sommet),
+  pistes/remontées ouvertes, statut station. Légal (`robots.txt` : `Allow:
+  /`), pas de clé. Schéma complet vérifié sur un resort réellement ouvert
+  (Valle Nevado, Chili, saison australe en cours) plutôt que sur une
+  station française (toutes hors-saison actuellement) —
+  `ingestion/sources/bulletins_neige.py`, parsing défensif par nom de
+  propriété, tolérant aux champs absents hors-saison.
+- **Mapping station → slug skiinfo.fr** dans
+  `dbt_project/seeds/stations_skiinfo_slug.csv` : 4 des 20 slugs diffèrent
+  du `station_id` (vérifiés un par un par requêtes HTTP réelles) —
+  `chamonix-mont-blanc`→`chamonix`, `morzine-avoriaz`→`morzine`,
+  `les-arcs`→`les-arcs-bourg-st-maurice`, `les-sept-laux`→`les-7-laux`.
+- **Les 3 sources du roadmap ingestion sont maintenant implémentées**
+  (référentiel, météo/avalanche, bulletins neige) — pipeline bout en bout
+  validé : `ingestion/pipeline.py` → MongoDB (bronze) → Snowflake RAW →
+  `stg_*`/`int_*`/marts dbt.
 
 ## Points ouverts
 
 - Fréquence de rafraîchissement du pipeline : à définir
 - Formule exacte du score de qualité neige : à définir
-- Source bulletins neige (3/3 du roadmap ingestion) : pas encore implémentée
 - Revalider le parsing XML du BRA avec de vraies données dès novembre 2026
 - Vérifier le massif BRA de Flaine (actuellement Aravis, TODO non confirmé)
+- `altitude_min`/`altitude_max` (fourchette du domaine skiable) : aucune des
+  3 sources ne les fournit, à résoudre par une source dédiée si besoin
 
 ## Note
 

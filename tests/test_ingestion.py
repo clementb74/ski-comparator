@@ -6,9 +6,47 @@ from unittest.mock import MagicMock, patch
 import requests
 
 from ingestion.sinks.mongodb_sink import write_bronze
-from ingestion.sinks.snowflake_sink import load_raw_meteo_releves, load_raw_stations_referentiel
+from ingestion.sinks.snowflake_sink import (
+    load_raw_bulletins_neige,
+    load_raw_meteo_releves,
+    load_raw_stations_referentiel,
+)
+from ingestion.sources.bulletins_neige import fetch_bulletins_neige
 from ingestion.sources.meteo_france import fetch_meteo_massifs
 from ingestion.sources.stations_referentiel import fetch_referentiel_stations
+
+SKIINFO_HORS_SAISON_HTML = """
+<html><head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SkiResort","name":"Flaine"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SkiResort","name":"Flaine","additionalProperty":[
+{"@type":"PropertyValue","name":"Resort status","value":"Fermée"},
+{"@type":"PropertyValue","name":"Last snow report update","value":"2026-04-22"},
+{"@type":"PropertyValue","name":"Last snowfall amount","value":0,"unitText":"centimeters"},
+{"@type":"PropertyValue","name":"Last snowfall date","value":"2026-04-22"},
+{"@type":"PropertyValue","name":"Projected season opening date","value":"2026-12-05"},
+{"@type":"PropertyValue","name":"Projected season closing date","value":"2027-04-04"}
+]}</script>
+</head><body></body></html>
+"""
+
+SKIINFO_OUVERT_HTML = """
+<html><head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SkiResort","name":"Valle Nevado","additionalProperty":[
+{"@type":"PropertyValue","name":"Resort status","value":"Open"},
+{"@type":"PropertyValue","name":"Last snow report update","value":"2026-09-27"},
+{"@type":"PropertyValue","name":"Base snow depth","value":89,"unitText":"centimeters"},
+{"@type":"PropertyValue","name":"Summit snow depth","value":180,"unitText":"centimeters"},
+{"@type":"PropertyValue","name":"Last snowfall amount","value":0,"unitText":"centimeters"},
+{"@type":"PropertyValue","name":"Last snowfall date","value":"2026-09-27"},
+{"@type":"PropertyValue","name":"Open trails","value":44},
+{"@type":"PropertyValue","name":"Open lifts","value":13},
+{"@type":"PropertyValue","name":"Projected season opening date","value":"2026-06-19"},
+{"@type":"PropertyValue","name":"Projected season closing date","value":"2026-10-18"}
+]}</script>
+</head><body></body></html>
+"""
+
+SKIINFO_SANS_JSON_LD_HTML = "<html><head></head><body>Page introuvable</body></html>"
 
 BRA_HORS_SAISON_XML = (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>'
@@ -336,4 +374,113 @@ def test_load_raw_meteo_releves_delete_puis_insert():
 
     insert_call = mock_cursor.executemany.call_args
     assert "INSERT INTO raw_meteo_releves" in insert_call.args[0]
+    mock_conn.commit.assert_called_once()
+
+
+def _write_slug_csv(tmp_path: Path, rows: list[dict]) -> Path:
+    csv_path = tmp_path / "stations_skiinfo_slug.csv"
+    with open(csv_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["station_id", "skiinfo_slug"])
+        writer.writeheader()
+        writer.writerows(rows)
+    return csv_path
+
+
+def test_fetch_bulletins_neige_hors_saison(tmp_path):
+    csv_path = _write_slug_csv(tmp_path, [{"station_id": "flaine", "skiinfo_slug": "flaine"}])
+
+    with patch("ingestion.sources.bulletins_neige.requests.get") as mock_get, patch(
+        "ingestion.sources.bulletins_neige.time.sleep"
+    ):
+        mock_get.return_value = MagicMock(text=SKIINFO_HORS_SAISON_HTML)
+
+        records = fetch_bulletins_neige(csv_path)
+
+    assert len(records) == 1
+    record = records[0]
+    assert record["station_id"] == "flaine"
+    assert record["resort_status"] == "Fermée"
+    assert record["base_snow_depth"] is None
+    assert record["open_trails"] is None
+    assert record["last_snowfall_amount"] == 0
+    assert record["last_snowfall_amount_unit"] == "centimeters"
+    mock_get.assert_called_once_with(
+        "https://www.skiinfo.fr/alpes-du-nord/flaine/bulletin-neige",
+        headers={"User-Agent": "ski-comparator-portfolio/0.1 (clementbousson@gmail.com)"},
+        timeout=20,
+    )
+
+
+def test_fetch_bulletins_neige_station_ouverte(tmp_path):
+    csv_path = _write_slug_csv(
+        tmp_path, [{"station_id": "val-thorens", "skiinfo_slug": "val-thorens"}]
+    )
+
+    with patch("ingestion.sources.bulletins_neige.requests.get") as mock_get, patch(
+        "ingestion.sources.bulletins_neige.time.sleep"
+    ):
+        mock_get.return_value = MagicMock(text=SKIINFO_OUVERT_HTML)
+
+        records = fetch_bulletins_neige(csv_path)
+
+    record = records[0]
+    assert record["resort_status"] == "Open"
+    assert record["base_snow_depth"] == 89
+    assert record["base_snow_depth_unit"] == "centimeters"
+    assert record["summit_snow_depth"] == 180
+    assert record["open_trails"] == 44
+    assert record["open_lifts"] == 13
+    assert record["raw_json_ld"]["name"] == "Valle Nevado"
+
+
+def test_fetch_bulletins_neige_json_ld_absent(tmp_path):
+    csv_path = _write_slug_csv(
+        tmp_path, [{"station_id": "station-x", "skiinfo_slug": "station-x"}]
+    )
+
+    with patch("ingestion.sources.bulletins_neige.requests.get") as mock_get, patch(
+        "ingestion.sources.bulletins_neige.time.sleep"
+    ):
+        mock_get.return_value = MagicMock(text=SKIINFO_SANS_JSON_LD_HTML)
+
+        records = fetch_bulletins_neige(csv_path)
+
+    assert len(records) == 1
+    record = records[0]
+    assert record["station_id"] == "station-x"
+    assert record["resort_status"] is None
+    assert record["raw_json_ld"] is None
+
+
+def test_load_raw_bulletins_neige_delete_puis_insert():
+    mock_conn = MagicMock()
+    mock_cursor = mock_conn.cursor.return_value
+
+    record = {
+        "station_id": "val-thorens",
+        "resort_status": "Open",
+        "last_snow_report_update": "2026-09-27",
+        "base_snow_depth": 89,
+        "base_snow_depth_unit": "centimeters",
+        "summit_snow_depth": 180,
+        "summit_snow_depth_unit": "centimeters",
+        "last_snowfall_amount": 0,
+        "last_snowfall_amount_unit": "centimeters",
+        "last_snowfall_date": "2026-09-27",
+        "open_trails": 44,
+        "open_lifts": 13,
+        "projected_season_opening_date": "2026-06-19",
+        "projected_season_closing_date": "2026-10-18",
+        "ingested_at": "2026-09-29T10:00:00+00:00",
+    }
+
+    with patch("ingestion.sinks.snowflake_sink._connect", return_value=mock_conn):
+        load_raw_bulletins_neige([record])
+
+    delete_call = mock_cursor.execute.call_args_list[1]
+    assert "DELETE FROM raw_bulletins_neige" in delete_call.args[0]
+    assert delete_call.args[1] == ["val-thorens"]
+
+    insert_call = mock_cursor.executemany.call_args
+    assert "INSERT INTO raw_bulletins_neige" in insert_call.args[0]
     mock_conn.commit.assert_called_once()

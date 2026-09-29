@@ -60,6 +60,45 @@ CREATE TABLE IF NOT EXISTS raw_meteo_releves (
 """
 
 
+_BULLETINS_NEIGE_COLUMNS = (
+    "station_id",
+    "resort_status",
+    "last_snow_report_update",
+    "base_snow_depth",
+    "base_snow_depth_unit",
+    "summit_snow_depth",
+    "summit_snow_depth_unit",
+    "last_snowfall_amount",
+    "last_snowfall_amount_unit",
+    "last_snowfall_date",
+    "open_trails",
+    "open_lifts",
+    "projected_season_opening_date",
+    "projected_season_closing_date",
+    "ingested_at",
+)
+
+_BULLETINS_NEIGE_CREATE_TABLE = """
+CREATE TABLE IF NOT EXISTS raw_bulletins_neige (
+    station_id VARCHAR,
+    resort_status VARCHAR,
+    last_snow_report_update VARCHAR,
+    base_snow_depth NUMBER,
+    base_snow_depth_unit VARCHAR,
+    summit_snow_depth NUMBER,
+    summit_snow_depth_unit VARCHAR,
+    last_snowfall_amount NUMBER,
+    last_snowfall_amount_unit VARCHAR,
+    last_snowfall_date VARCHAR,
+    open_trails NUMBER,
+    open_lifts NUMBER,
+    projected_season_opening_date VARCHAR,
+    projected_season_closing_date VARCHAR,
+    ingested_at TIMESTAMP_NTZ
+)
+"""
+
+
 def _connect():
     return snowflake.connector.connect(
         account=settings.snowflake_account,
@@ -122,5 +161,16 @@ def load_raw_meteo_releves(records: list[dict]) -> None:
         _METEO_RELEVES_CREATE_TABLE,
         _METEO_RELEVES_COLUMNS,
         "id_massif_bra",
+        records,
+    )
+
+
+def load_raw_bulletins_neige(records: list[dict]) -> None:
+    """Recharge la table raw_bulletins_neige pour les stations fournies."""
+    _recharger_table(
+        "raw_bulletins_neige",
+        _BULLETINS_NEIGE_CREATE_TABLE,
+        _BULLETINS_NEIGE_COLUMNS,
+        "station_id",
         records,
     )

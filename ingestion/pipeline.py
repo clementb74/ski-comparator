@@ -1,14 +1,19 @@
 """Point d'entrée du pipeline d'ingestion.
 
-Orchestre la collecte des sources (référentiel stations, météo/avalanche par
-massif ; bulletins neige à venir) et l'écriture en couche bronze (MongoDB) +
-raw (Snowflake).
+Orchestre la collecte des 3 sources (référentiel stations, météo/avalanche
+par massif, bulletins neige par station) et l'écriture en couche bronze
+(MongoDB) + raw (Snowflake).
 """
 import logging
 from pathlib import Path
 
 from ingestion.sinks.mongodb_sink import write_bronze
-from ingestion.sinks.snowflake_sink import load_raw_meteo_releves, load_raw_stations_referentiel
+from ingestion.sinks.snowflake_sink import (
+    load_raw_bulletins_neige,
+    load_raw_meteo_releves,
+    load_raw_stations_referentiel,
+)
+from ingestion.sources.bulletins_neige import fetch_bulletins_neige
 from ingestion.sources.meteo_france import fetch_meteo_massifs
 from ingestion.sources.stations_referentiel import fetch_referentiel_stations
 
@@ -17,6 +22,7 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PERIMETRE_CSV_PATH = REPO_ROOT / "dbt_project" / "seeds" / "perimetre_stations.csv"
 MASSIF_BRA_CSV_PATH = REPO_ROOT / "dbt_project" / "seeds" / "stations_massif_bra.csv"
+SKIINFO_SLUG_CSV_PATH = REPO_ROOT / "dbt_project" / "seeds" / "stations_skiinfo_slug.csv"
 
 
 def run() -> None:
@@ -39,6 +45,15 @@ def run() -> None:
 
     load_raw_meteo_releves(massifs)
     logger.info("Météo/avalanche chargé en raw (Snowflake)")
+
+    bulletins = fetch_bulletins_neige(SKIINFO_SLUG_CSV_PATH)
+    logger.info("Bulletins neige : %d enregistrements récupérés", len(bulletins))
+
+    write_bronze(bulletins, collection="raw_bulletins_neige")
+    logger.info("Bulletins neige écrits en bronze (MongoDB)")
+
+    load_raw_bulletins_neige(bulletins)
+    logger.info("Bulletins neige chargés en raw (Snowflake)")
 
 
 if __name__ == "__main__":
