@@ -140,6 +140,22 @@ réelles locales — j'ai testé sur un domaine skiable actuellement ouvert
 dans l'hémisphère sud (Chili, saison inversée) pour confirmer la structure
 complète des champs avant d'écrire le parsing.
 
+**7. Diagnostic d'une lenteur perçue côté utilisateur ("Ajouter au
+comparateur" prend plusieurs secondes).** Plutôt que de supposer la cause,
+mesuré en direct avec le connecteur Snowflake en mode debug : la requête
+SQL elle-même prend 0.15s, mais établir une connexion Snowflake en prend
+~65s — y compris quand le warehouse est déjà démarré (vérifié via `SHOW
+WAREHOUSES` : état `STARTED`), ce qui exclut un simple "réveil" de
+warehouse. Les logs montrent que le temps est concentré sur un seul appel
+HTTP (`POST /session/v1/login-request`), pas sur la vérification OCSP
+(servie depuis le cache local, donc rapide). Cause architecturale : l'API
+(`api/core/snowflake_client.py`) ouvre une connexion neuve à chaque
+requête HTTP (voir "Limites actuelles"), contrairement à `dbt run` qui
+réutilise une seule connexion pour tout le run — d'où l'impression que dbt
+"va vite" après le premier modèle, alors que l'API paie ce coût à chaque
+clic. Bonne illustration de "mesurer avant de corriger" : la première
+hypothèse (warehouse suspendu) s'est révélée fausse une fois testée.
+
 ## Tests et qualité
 
 - Tests unitaires Python (`pytest`) sur toute la couche ingestion et API :
@@ -160,7 +176,12 @@ complète des champs avant d'écrire le parsing.
 - `altitude_min`/`altitude_max` (fourchette du domaine skiable) non
   résolus : aucune des 3 sources ne les fournit.
 - Pas de pool de connexions Snowflake côté API (une connexion par requête
-  HTTP) — pragmatique à cette échelle, à revoir si le trafic augmentait.
+  HTTP) — pragmatique à cette échelle, mais mesuré comme coûteux en
+  pratique (~65s par connexion contre 0.15s pour la requête elle-même, voir
+  problème #7 ci-dessus). Le vrai coût utilisateur n'est donc pas la
+  requête mais l'absence de réutilisation de connexion — correction
+  identifiée (connexion persistante/pool au démarrage de l'API plutôt que
+  par requête) mais pas encore appliquée.
 
 ## Questions probables et pistes de réponse
 
@@ -189,3 +210,13 @@ vérifier la formule).
 Un vrai mécanisme d'historisation (append + SCD plutôt que delete+insert),
 un pool de connexions pour l'API, et recalibrer le score avec des données
 de saison réelles plutôt que des seuils choisis à l'aveugle.
+
+**"Comment tu débogues un problème de lenteur perçue par l'utilisateur ?"**
+Exemple concret sur ce projet : "Ajouter au comparateur" semblait lent.
+Plutôt que de deviner, j'ai mesuré séparément le temps de connexion
+Snowflake et le temps d'exécution de la requête (logs du connecteur en
+mode debug). Résultat : la requête prend 0.15s, la connexion ~65s — et ce
+même warehouse déjà démarré, ce qui a invalidé ma première hypothèse
+("le warehouse se réveille"). La vraie cause : l'API ouvre une connexion
+neuve à chaque requête HTTP au lieu d'en réutiliser une. Mesurer avant de
+corriger évite de corriger la mauvaise chose.
