@@ -10,3 +10,7 @@ dbt_project/dbt_packages/
 node_modules/
 .DS_Store
 *.log
+
+# Notes personnelles (présentation/entretien), pas destinées au dépôt
+docs/PRESENTATION-GRAND-PUBLIC.md
+docs/PREPARATION-ENTRETIEN-TECHNIQUE.md
